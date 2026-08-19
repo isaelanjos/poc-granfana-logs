@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: observability
+resources:
+  - ../../base
+images:
+  - name: api-vet
+    newName: api-vet
+    newTag: latest
+patches:
+  - target:
+      kind: Gateway
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/listeners/0/hostname
+        value: api.local
+  - target:
+      kind: Deployment
+      name: api-vet
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: api-vet:latest
