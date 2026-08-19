@@ -1,0 +1,44 @@
+// Descobre os containers Docker através do socket do Docker.
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Mantém somente o container da API e transforma o nome do container em label.
+discovery.relabel "api" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/?api-vet-alloy"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/?(.*)"
+    target_label  = "container"
+    replacement   = "$1"
+  }
+}
+
+// Coleta stdout/stderr do container e envia os eventos para o pipeline.
+loki.source.docker "api" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.api.output
+  labels     = {service = "api-vet", environment = "dev"}
+  forward_to = [loki.process.api.receiver]
+}
+
+// Remove o envelope JSON criado pelo Docker, mantendo o JSON original da API.
+loki.process "api" {
+  stage.docker {}
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+

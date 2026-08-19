@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: API Vet
+    orgId: 1
+    folder: API Vet
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/dashboards
